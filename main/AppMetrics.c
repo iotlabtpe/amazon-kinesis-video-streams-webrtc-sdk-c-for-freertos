@@ -14,7 +14,7 @@
  */
 #define LOG_CLASS "AppMetrics"
 #include "AppMetrics.h"
-#include "filelogger.h"
+#include "FileLogger.h"
 UINT32 getLogLevel(VOID)
 {
     PCHAR pLogLevel;
@@ -71,7 +71,7 @@ STATUS app_metrics_logIceServerStats(PRtcPeerConnection pRtcPeerConnection, UINT
 
     pRtcMetrics->requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
     pRtcMetrics->rtcStatsObject.iceServerStats.iceServerIndex = index;
-    CHK(metrics_get(pRtcPeerConnection, NULL, pRtcMetrics) == STATUS_SUCCESS, STATUS_APP_METRICS_ICE_SERVER);
+    CHK(rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, pRtcMetrics) == STATUS_SUCCESS, STATUS_APP_METRICS_ICE_SERVER);
     DLOGD("ICE Server URL: %s", pRtcMetrics->rtcStatsObject.iceServerStats.url);
     DLOGD("ICE Server port: %d", pRtcMetrics->rtcStatsObject.iceServerStats.port);
     DLOGD("ICE Server protocol: %s", pRtcMetrics->rtcStatsObject.iceServerStats.protocol);
@@ -95,7 +95,7 @@ STATUS logSelectedIceCandidatesInformation(PRtcPeerConnection pRtcPeerConnection
 
     CHK(pRtcPeerConnection != NULL, STATUS_APP_METRICS_NULL_ARG);
     pRtcMetrics->requestedTypeOfStats = RTC_STATS_TYPE_LOCAL_CANDIDATE;
-    CHK(metrics_get(pRtcPeerConnection, NULL, pRtcMetrics) == STATUS_SUCCESS, STATUS_APP_METRICS_LOCAL_ICE_CANDIDATE);
+    CHK(rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, pRtcMetrics) == STATUS_SUCCESS, STATUS_APP_METRICS_LOCAL_ICE_CANDIDATE);
     DLOGD("Local Candidate IP Address: %s", pRtcMetrics->rtcStatsObject.localIceCandidateStats.address);
     DLOGD("Local Candidate type: %s", pRtcMetrics->rtcStatsObject.localIceCandidateStats.candidateType);
     DLOGD("Local Candidate port: %d", pRtcMetrics->rtcStatsObject.localIceCandidateStats.port);
@@ -105,7 +105,7 @@ STATUS logSelectedIceCandidatesInformation(PRtcPeerConnection pRtcPeerConnection
     DLOGD("Local Candidate Ice server source: %s", pRtcMetrics->rtcStatsObject.localIceCandidateStats.url);
 
     pRtcMetrics->requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_CANDIDATE;
-    CHK(metrics_get(pRtcPeerConnection, NULL, pRtcMetrics) == STATUS_SUCCESS, STATUS_APP_METRICS_REMOTE_ICE_CANDIDATE);
+    CHK(rtcPeerConnectionGetMetrics(pRtcPeerConnection, NULL, pRtcMetrics) == STATUS_SUCCESS, STATUS_APP_METRICS_REMOTE_ICE_CANDIDATE);
     DLOGD("Remote Candidate IP Address: %s", pRtcMetrics->rtcStatsObject.remoteIceCandidateStats.address);
     DLOGD("Remote Candidate type: %s", pRtcMetrics->rtcStatsObject.remoteIceCandidateStats.candidateType);
     DLOGD("Remote Candidate port: %d", pRtcMetrics->rtcStatsObject.remoteIceCandidateStats.port);

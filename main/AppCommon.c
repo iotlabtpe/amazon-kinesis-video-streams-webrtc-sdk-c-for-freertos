@@ -21,10 +21,10 @@
 #include "AppMediaSink.h"
 #include "AppSignaling.h"
 #include "AppWebRTC.h"
-#include "hash_table.h"
-#include "timer_queue.h"
-#include "logger.h"
-#include "crc32.h"
+#include "HashTable.h"
+#include "TimerQueue.h"
+#include "Logger.h"
+#include "Crc32.h"
 
 static PAppConfiguration gAppConfiguration = NULL; //!< for the system-level signal handler
 static BOOL gInitialized = FALSE; //!< for the system-level signal handler
@@ -61,12 +61,12 @@ static STATUS app_common_onMediaSinkHook(PVOID udata, PFrame pFrame)
         } else {
             pRtcRtpTransceiver = pStreamingSession->pVideoRtcRtpTransceiver;
         }
-        retStatus = rtp_writeFrame(pRtcRtpTransceiver, pFrame);
+        retStatus = writeFrame(pRtcRtpTransceiver, pFrame);
         if (retStatus != STATUS_SUCCESS && retStatus != STATUS_SRTP_NOT_READY_YET) {
             // STATUS_SRTP_NOT_READY_YET
             // srtp session may not ready when we write the frames.
             // #TBD, make it more precisely.
-            DLOGW("rtp_writeFrame() failed with 0x%08x", retStatus);
+            DLOGW("writeFrame() failed with 0x%08x", retStatus);
             retStatus = STATUS_SUCCESS;
         }
     }
@@ -132,7 +132,7 @@ static STATUS app_common_onSignalingClientStateChanged(UINT64 userData, SIGNALIN
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pStateStr;
 
-    signaling_client_getStateString(state, &pStateStr);
+    signalingClientGetStateString(state, &pStateStr);
     DLOGD("Signaling client state changed to %d - '%s'", state, pStateStr);
 
     // Return success to continue
@@ -189,8 +189,8 @@ static STATUS app_common_handleRemoteCandidate(PStreamingSession pStreamingSessi
     CHK(NULL != (pIceCandidate = (PRtcIceCandidateInit) MEMCALLOC(1, SIZEOF(RtcIceCandidateInit))), STATUS_APP_COMMON_NOT_ENOUGH_MEMORY);
 
     CHK(pStreamingSession != NULL, STATUS_APP_COMMON_NULL_ARG);
-    CHK_STATUS((sdp_deserializeRtcIceCandidateInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pIceCandidate)));
-    CHK_STATUS((pc_addIceCandidate(pStreamingSession->pPeerConnection, pIceCandidate->candidate)));
+    CHK_STATUS((deserializeRtcIceCandidateInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pIceCandidate)));
+    CHK_STATUS((addIceCandidate(pStreamingSession->pPeerConnection, pIceCandidate->candidate)));
 
 CleanUp:
     SAFE_MEMFREE(pIceCandidate);
@@ -205,7 +205,7 @@ static STATUS app_common_respondWithAnswer(PStreamingSession pStreamingSession)
     UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
 
     CHK(NULL != (pMessage = (PSignalingMessage) MEMCALLOC(1, SIZEOF(SignalingMessage))), STATUS_APP_COMMON_NOT_ENOUGH_MEMORY);
-    CHK_STATUS((sdp_serializeInit(&pStreamingSession->answerSessionDescriptionInit, pMessage->payload, &buffLen)));
+    CHK_STATUS((serializeSessionDescriptionInit(&pStreamingSession->answerSessionDescriptionInit, pMessage->payload, &buffLen)));
 
     pMessage->version = SIGNALING_MESSAGE_CURRENT_VERSION;
     pMessage->messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
@@ -231,17 +231,17 @@ static STATUS app_common_handleOffer(PAppConfiguration pAppConfiguration, PStrea
     CHK(NULL != (pOfferSessionDescriptionInit = (PRtcSessionDescriptionInit) MEMCALLOC(1, SIZEOF(RtcSessionDescriptionInit))), STATUS_APP_COMMON_NOT_ENOUGH_MEMORY);
     MEMSET(&pStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
-    CHK_STATUS((sdp_deserializeInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pOfferSessionDescriptionInit)));
-    CHK_STATUS((pc_setRemoteDescription(pStreamingSession->pPeerConnection, pOfferSessionDescriptionInit)));
-    canTrickle = pc_canTrickleIceCandidates(pStreamingSession->pPeerConnection);
-    // cannot be null after pc_setRemoteDescription
+    CHK_STATUS((deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pOfferSessionDescriptionInit)));
+    CHK_STATUS((setRemoteDescription(pStreamingSession->pPeerConnection, pOfferSessionDescriptionInit)));
+    canTrickle = canTrickleIceCandidates(pStreamingSession->pPeerConnection);
+    // cannot be null after setRemoteDescription
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
     pStreamingSession->remoteCanTrickleIce = canTrickle.value;
-    CHK_STATUS((pc_setLocalDescription(pStreamingSession->pPeerConnection, &pStreamingSession->answerSessionDescriptionInit)));
+    CHK_STATUS((setLocalDescription(pStreamingSession->pPeerConnection, &pStreamingSession->answerSessionDescriptionInit)));
 
     // If remote support trickle ice, send answer now. Otherwise answer will be sent once ice candidate gathering is complete.
     if (pStreamingSession->remoteCanTrickleIce) {
-        CHK_STATUS((pc_createAnswer(pStreamingSession->pPeerConnection, &pStreamingSession->answerSessionDescriptionInit)));
+        CHK_STATUS((createAnswer(pStreamingSession->pPeerConnection, &pStreamingSession->answerSessionDescriptionInit)));
         CHK_STATUS((app_common_respondWithAnswer(pStreamingSession)));
         DLOGD("time taken to send answer %" PRIu64 " ms", (GETTIME() - pStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
@@ -281,7 +281,7 @@ static VOID app_common_onIceCandidate(UINT64 userData, PCHAR candidateJson)
         // if application is master and non-trickle ice, send answer now.
         if (app_signaling_getRole(&pStreamingSession->pAppConfiguration->appSignaling) == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
             !pStreamingSession->remoteCanTrickleIce) {
-            CHK_STATUS((pc_createAnswer(pStreamingSession->pPeerConnection, &pStreamingSession->answerSessionDescriptionInit)));
+            CHK_STATUS((createAnswer(pStreamingSession->pPeerConnection, &pStreamingSession->answerSessionDescriptionInit)));
             CHK_STATUS((app_common_respondWithAnswer(pStreamingSession)));
             DLOGD("time taken to send answer %" PRIu64 " ms", (GETTIME() - pStreamingSession->offerReceiveTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         }
@@ -328,7 +328,7 @@ static STATUS app_common_onIceCandidatePairStats(UINT32 timerId, UINT64 currentT
 
     for (i = 0; i < pAppConfiguration->streamingSessionCount; ++i) {
         if (STATUS_SUCCEEDED(
-                metrics_get(pAppConfiguration->streamingSessionList[i]->pPeerConnection, NULL, pRtcMetrics))) {
+                rtcPeerConnectionGetMetrics(pAppConfiguration->streamingSessionList[i]->pPeerConnection, NULL, pRtcMetrics))) {
             currentMeasureDuration = (pRtcMetrics->timestamp - pAppConfiguration->streamingSessionList[i]->rtcMetricsHistory.prevTs) /
                 HUNDREDS_OF_NANOS_IN_A_SECOND;
             DLOGD("Current duration: %" PRIu64 " seconds", currentMeasureDuration);
@@ -416,10 +416,10 @@ static STATUS app_common_onSignalingMessageReceived(UINT64 userData, PReceivedSi
     // find the corresponding streaming session.
     clientIdHashKey = COMPUTE_CRC32((PBYTE) pReceivedSignalingMessage->signalingMessage.peerClientId,
                                     (UINT32) STRLEN(pReceivedSignalingMessage->signalingMessage.peerClientId));
-    CHK_STATUS((hash_table_contains(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, &peerConnectionFound)));
+    CHK_STATUS((hashTableContains(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, &peerConnectionFound)));
 
     if (peerConnectionFound) {
-        CHK_STATUS((hash_table_get(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, &hashValue)));
+        CHK_STATUS((hashTableGet(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, &hashValue)));
         pStreamingSession = (PStreamingSession) hashValue;
     }
 
@@ -450,7 +450,7 @@ static STATUS app_common_onSignalingMessageReceived(UINT64 userData, PReceivedSi
             MUTEX_UNLOCK(pAppConfiguration->streamingSessionListReadLock);
 
             CHK_STATUS((app_common_handleOffer(pAppConfiguration, pStreamingSession, &pReceivedSignalingMessage->signalingMessage)));
-            CHK_STATUS((hash_table_put(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, (UINT64) pStreamingSession)));
+            CHK_STATUS((hashTablePut(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, (UINT64) pStreamingSession)));
 
             // If there are any ice candidate messages in the queue for this client id, submit them now.
             CHK_STATUS((app_msg_q_getPendingMsgQByHashVal(pAppConfiguration->pRemotePeerPendingSignalingMessages, clientIdHashKey, TRUE, &pPendingMsgQ)));
@@ -485,7 +485,7 @@ static STATUS app_common_onSignalingMessageReceived(UINT64 userData, PReceivedSi
     locked = FALSE;
     #if 0
     if (startStats &&
-        STATUS_FAILED(retStatus = timer_queue_addTimer(pAppConfiguration->timerQueueHandle, APP_STATS_DURATION, APP_STATS_DURATION,
+        STATUS_FAILED(retStatus = timerQueueAddTimer(pAppConfiguration->timerQueueHandle, APP_STATS_DURATION, APP_STATS_DURATION,
                                                   app_common_onIceCandidatePairStats, (UINT64) pAppConfiguration,
                                                   &pAppConfiguration->iceCandidatePairStatsTimerId))) {
         DLOGW("Failed to add app_common_onIceCandidatePairStats to add to timer queue (code 0x%08x). "
@@ -590,7 +590,7 @@ static STATUS app_common_initializePeerConnection(PAppConfiguration pAppConfigur
     }
 
     curTime = GETTIME();
-    CHK_STATUS((pc_create(pConfiguration, ppRtcPeerConnection)));
+    CHK_STATUS((createPeerConnection(pConfiguration, ppRtcPeerConnection)));
     DLOGD("time taken to create peer connection %" PRIu64 " ms", (GETTIME() - curTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
 CleanUp:
@@ -598,7 +598,7 @@ CleanUp:
     CHK_LOG_ERR((retStatus));
 
     // Free the certificate which can be NULL as we no longer need it and won't reuse
-    rtc_certificate_free(pRtcCertificate);
+    freeRtcCertificate(pRtcCertificate);
     SAFE_MEMFREE(pConfiguration);
     LEAVES();
     return retStatus;
@@ -636,29 +636,29 @@ STATUS app_common_createStreamingSession(PAppConfiguration pAppConfiguration, PC
     ATOMIC_STORE_BOOL(&pStreamingSession->candidateGatheringDone, FALSE);
 
     CHK_STATUS((app_common_initializePeerConnection(pAppConfiguration, &pStreamingSession->pPeerConnection)));
-    CHK_STATUS((pc_onIceCandidate(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession, app_common_onIceCandidate)));
-    CHK_STATUS((pc_onConnectionStateChange(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession, app_common_onConnectionStateChange)));
+    CHK_STATUS((peerConnectionOnIceCandidate(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession, app_common_onIceCandidate)));
+    CHK_STATUS((peerConnectionOnConnectionStateChange(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession, app_common_onConnectionStateChange)));
 #ifdef ENABLE_DATA_CHANNEL
-    CHK_STATUS((pc_onDataChannel(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession, onDataChannel)));
+    CHK_STATUS((peerConnectionOnDataChannel(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession, onDataChannel)));
 #endif
 
     // Add a SendRecv Transceiver of type video
     CHK_STATUS((pAppMediaSrc->app_media_source_queryVideoCap(pAppConfiguration->pMediaContext, &codec)));
-    CHK_STATUS((pc_addSupportedCodec(pStreamingSession->pPeerConnection, codec)));
+    CHK_STATUS((addSupportedCodec(pStreamingSession->pPeerConnection, codec)));
     pVideoTrack->kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     pVideoTrack->codec = codec;
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     STRNCPY(pVideoTrack->streamId, APP_VIDEO_TRACK_STREAM_ID, MAX_MEDIA_STREAM_ID_LEN);
     STRNCPY(pVideoTrack->trackId, APP_VIDEO_TRACK_ID, MAX_MEDIA_STREAM_ID_LEN);
     CHK_STATUS(
-        (pc_addTransceiver(pStreamingSession->pPeerConnection, pVideoTrack, &videoRtpTransceiverInit, &pStreamingSession->pVideoRtcRtpTransceiver)));
+        (addTransceiver(pStreamingSession->pPeerConnection, pVideoTrack, &videoRtpTransceiverInit, &pStreamingSession->pVideoRtcRtpTransceiver)));
 
     CHK_STATUS(
-        (rtp_transceiver_onBandwidthEstimation(pStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
+        (transceiverOnBandwidthEstimation(pStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
 
     // Add a SendRecv Transceiver of type audio
     //CHK_STATUS((pAppMediaSrc->app_media_source_queryAudioCap(pAppConfiguration->pMediaContext, &codec)));
-    //CHK_STATUS((pc_addSupportedCodec(pStreamingSession->pPeerConnection, codec)));
+    //CHK_STATUS((addSupportedCodec(pStreamingSession->pPeerConnection, codec)));
     //pAudioTrack->kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     //pAudioTrack->codec = codec;
 #ifdef ENABLE_AUDIO_SENDRECV
@@ -669,10 +669,10 @@ STATUS app_common_createStreamingSession(PAppConfiguration pAppConfiguration, PC
     //STRNCPY(pAudioTrack->streamId, APP_AUDIO_TRACK_STREAM_ID, MAX_MEDIA_STREAM_ID_LEN);
     //STRNCPY(pAudioTrack->trackId, APP_AUDIO_TRACK_ID, MAX_MEDIA_STREAM_ID_LEN);
     //CHK_STATUS(
-    //   (pc_addTransceiver(pStreamingSession->pPeerConnection, pAudioTrack, &audioRtpTransceiverInit, &pStreamingSession->pAudioRtcRtpTransceiver)));
+    //   (addTransceiver(pStreamingSession->pPeerConnection, pAudioTrack, &audioRtpTransceiverInit, &pStreamingSession->pAudioRtcRtpTransceiver)));
 
     //CHK_STATUS(
-    //   (rtp_transceiver_onBandwidthEstimation(pStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
+    //   (transceiverOnBandwidthEstimation(pStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
     // twcc bandwidth estimation
     // CHK_STATUS((peerConnectionOnSenderBandwidthEstimation(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession,
                                                          // app_common_onSenderBandwidthEstimation)));
@@ -681,8 +681,8 @@ STATUS app_common_createStreamingSession(PAppConfiguration pAppConfiguration, PC
     pStreamingSession->startUpLatency = 0;
 
 #ifdef ENABLE_DATA_CHANNEL
-    CHK_STATUS(data_channel_create(pStreamingSession->pPeerConnection, "kvsDataChannelMaster", NULL, &pStreamingSession->pRtcDataChannel));
-    CHK_LOG_ERR(data_channel_onMessage(pStreamingSession->pRtcDataChannel, 0, onDataChannelMessageMaster));
+    CHK_STATUS(createDataChannel(pStreamingSession->pPeerConnection, "kvsDataChannelMaster", NULL, &pStreamingSession->pRtcDataChannel));
+    CHK_LOG_ERR(dataChannelOnMessage(pStreamingSession->pRtcDataChannel, 0, onDataChannelMessageMaster));
 #endif
 
 CleanUp:
@@ -720,13 +720,13 @@ STATUS app_common_freeStreamingSession(PStreamingSession* ppStreamingSession)
         //#TBD. this may causes deadlock.
 
         CHK_LOG_ERR(
-            (timer_queue_cancelTimer(pAppConfiguration->timerQueueHandle, pAppConfiguration->iceCandidatePairStatsTimerId, (UINT64) pAppConfiguration)));
+            (timerQueueCancelTimer(pAppConfiguration->timerQueueHandle, pAppConfiguration->iceCandidatePairStatsTimerId, (UINT64) pAppConfiguration)));
         pAppConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     }
     MUTEX_UNLOCK(pAppConfiguration->appConfigurationObjLock);
 
-    CHK_LOG_ERR((pc_close(pStreamingSession->pPeerConnection)));
-    CHK_LOG_ERR((pc_free(&pStreamingSession->pPeerConnection)));
+    CHK_LOG_ERR((closePeerConnection(pStreamingSession->pPeerConnection)));
+    CHK_LOG_ERR((freePeerConnection(&pStreamingSession->pPeerConnection)));
     MEMFREE(pStreamingSession);
 
 CleanUp:
@@ -820,7 +820,7 @@ STATUS initApp(BOOL trickleIce, BOOL useTurn, PAppMediaSrc pAppMediaSrc, PAppCon
 
     CHK_STATUS((app_msg_q_createConnectionMsqQ(&pAppConfiguration->pRemotePeerPendingSignalingMessages)));
     CHK_STATUS(
-        (hash_table_createWithParams(APP_HASH_TABLE_BUCKET_COUNT, APP_HASH_TABLE_BUCKET_LENGTH, &pAppConfiguration->pRemoteRtcPeerConnections)));
+        (hashTableCreateWithParams(APP_HASH_TABLE_BUCKET_COUNT, APP_HASH_TABLE_BUCKET_LENGTH, &pAppConfiguration->pRemoteRtcPeerConnections)));
 
     pAppConfiguration->pAppMediaSrc = pAppMediaSrc;
     // the initialization of media source.
@@ -838,7 +838,7 @@ STATUS initApp(BOOL trickleIce, BOOL useTurn, PAppMediaSrc pAppMediaSrc, PAppCon
 
     // Start the cert pre-gen timer callback
     if (APP_PRE_GENERATE_CERT) {
-        CHK_LOG_ERR((retStatus = timer_queue_addTimer(pAppConfiguration->timerQueueHandle, 0, APP_PRE_GENERATE_CERT_PERIOD, app_common_pregenerateCertTimerCallback,
+        CHK_LOG_ERR((retStatus = timerQueueAddTimer(pAppConfiguration->timerQueueHandle, 0, APP_PRE_GENERATE_CERT_PERIOD, app_common_pregenerateCertTimerCallback,
                                                  (UINT64) pAppConfiguration, &pAppConfiguration->pregenerateCertTimerId)));
     }
 
@@ -903,8 +903,8 @@ STATUS freeApp(PAppConfiguration* ppAppConfiguration)
     }
 
     app_msg_q_freeConnectionMsgQ(&pAppConfiguration->pRemotePeerPendingSignalingMessages);
-    hash_table_clear(pAppConfiguration->pRemoteRtcPeerConnections);
-    hash_table_free(pAppConfiguration->pRemoteRtcPeerConnections);
+    hashTableClear(pAppConfiguration->pRemoteRtcPeerConnections);
+    hashTableFree(pAppConfiguration->pRemoteRtcPeerConnections);
 
     for (i = 0; i < pAppConfiguration->streamingSessionCount; ++i) {
         //#TBD, need to add the feature of metrics.
@@ -948,7 +948,7 @@ STATUS freeApp(PAppConfiguration* ppAppConfiguration)
     if (IS_VALID_TIMER_QUEUE_HANDLE(pAppConfiguration->timerQueueHandle)) {
         if (pAppConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
             retStatus =
-                timer_queue_cancelTimer(pAppConfiguration->timerQueueHandle, pAppConfiguration->iceCandidatePairStatsTimerId, (UINT64) pAppConfiguration);
+                timerQueueCancelTimer(pAppConfiguration->timerQueueHandle, pAppConfiguration->iceCandidatePairStatsTimerId, (UINT64) pAppConfiguration);
             if (STATUS_FAILED(retStatus)) {
                 DLOGE("Failed to cancel stats timer with: 0x%08x", retStatus);
             }
@@ -957,13 +957,13 @@ STATUS freeApp(PAppConfiguration* ppAppConfiguration)
 
         if (pAppConfiguration->pregenerateCertTimerId != MAX_UINT32) {
             retStatus =
-                timer_queue_cancelTimer(pAppConfiguration->timerQueueHandle, pAppConfiguration->pregenerateCertTimerId, (UINT64) pAppConfiguration);
+                timerQueueCancelTimer(pAppConfiguration->timerQueueHandle, pAppConfiguration->pregenerateCertTimerId, (UINT64) pAppConfiguration);
             if (STATUS_FAILED(retStatus)) {
                 DLOGE("Failed to cancel certificate pre-generation timer with: 0x%08x", retStatus);
             }
             pAppConfiguration->pregenerateCertTimerId = MAX_UINT32;
         }
-        timer_queue_free(&pAppConfiguration->timerQueueHandle);
+        timerQueueFree(&pAppConfiguration->timerQueueHandle);
     }
 
     app_credential_destroy(&pAppConfiguration->appCredential);
@@ -1014,9 +1014,9 @@ STATUS pollApp(PAppConfiguration pAppConfiguration)
 
                 // Remove from the hash table
                 clientIdHashKey = COMPUTE_CRC32((PBYTE) pStreamingSession->peerId, (UINT32) STRLEN(pStreamingSession->peerId));
-                CHK_STATUS((hash_table_contains(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, &peerConnectionFound)));
+                CHK_STATUS((hashTableContains(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey, &peerConnectionFound)));
                 if (peerConnectionFound) {
-                    CHK_STATUS((hash_table_remove(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey)));
+                    CHK_STATUS((hashTableRemove(pAppConfiguration->pRemoteRtcPeerConnections, clientIdHashKey)));
                 }
                 if (pAppConfiguration->streamingSessionCount == 0) {
                     shutdownMediaSource = TRUE;

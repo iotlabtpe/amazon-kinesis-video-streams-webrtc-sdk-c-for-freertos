@@ -14,7 +14,7 @@
  */
 #define LOG_CLASS "AppMain"
 #include "AppCommon.h"
-#include "instrumented_allocators.h"
+#include "InstrumentedAllocators.h"
 
 INT32 WebRTCAppMain(PAppMediaSrc pAppMediaSrc)
 {

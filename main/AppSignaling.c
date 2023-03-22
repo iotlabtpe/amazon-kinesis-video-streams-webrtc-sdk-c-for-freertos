@@ -47,18 +47,33 @@ STATUS app_signaling_queryServer(PAppSignaling pAppSignaling, PRtcIceServer pIce
     *pServerNum = 0;
 
     // Set the  STUN server
+#if 0
     SNPRINTF(pIceServer[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pAppSignaling->channelInfo.pRegion);
+
+
+#else
+    // SNPRINTF(pIceServer[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pAppSignaling->channelInfo.pRegion);
+    PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+    // If region is in CN, add CN region uri postfix
+    if (STRSTR(pAppSignaling->channelInfo.pRegion, "cn-")) {
+        pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+    }
+    SNPRINTF(pIceServer[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pAppSignaling->channelInfo.pRegion,
+             pKinesisVideoStunUrlPostFix);
+#endif
+
     *pServerNum = 1;
+
 
     if (pAppSignaling->useTurn) {
         // Set the URIs from the configuration
-        CHK(signaling_client_getIceConfigInfoCount(pAppSignaling->signalingClientHandle, &iceConfigCount) == STATUS_SUCCESS,
+        CHK(signalingClientGetIceConfigInfoCount(pAppSignaling->signalingClientHandle, &iceConfigCount) == STATUS_SUCCESS,
             STATUS_APP_SIGNALING_INVALID_INFO_COUNT);
 
-        // signaling_client_getIceConfigInfoCount can return more than one turn server. Use only one to optimize
+        // signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
         // candidate gathering latency. But user can also choose to use more than 1 turn server.
         for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            CHK(signaling_client_getIceConfigInfo(pAppSignaling->signalingClientHandle, i, &pIceConfigInfo) == STATUS_SUCCESS,
+            CHK(signalingClientGetIceConfigInfo(pAppSignaling->signalingClientHandle, i, &pIceConfigInfo) == STATUS_SUCCESS,
                 STATUS_APP_SIGNALING_INVALID_INFO);
 
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
@@ -89,12 +104,12 @@ CleanUp:
 STATUS app_signaling_connect(PAppSignaling pAppSignaling)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(signaling_client_create(&pAppSignaling->clientInfo, &pAppSignaling->channelInfo, &pAppSignaling->signalingClientCallbacks,
+    CHK(createSignalingClientSync(&pAppSignaling->clientInfo, &pAppSignaling->channelInfo, &pAppSignaling->signalingClientCallbacks,
                                   pAppSignaling->pAppCredential->pCredentialProvider, &pAppSignaling->signalingClientHandle) == STATUS_SUCCESS,
         STATUS_APP_SIGNALING_CREATE);
     DLOGD("Signaling client created successfully");
     // Enable the processing of the messages
-    CHK(signaling_client_connect(pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_CONNECT);
+    CHK(signalingClientConnectSync(pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_CONNECT);
 
 CleanUp:
     return retStatus;
@@ -107,11 +122,11 @@ STATUS app_signaling_check(PAppSignaling pAppSignaling)
 
     // Check the signaling client state and connect if needed
     if (IS_VALID_SIGNALING_CLIENT_HANDLE(pAppSignaling->signalingClientHandle)) {
-        CHK(signaling_client_getCurrentState(pAppSignaling->signalingClientHandle, &signalingClientState) == STATUS_SUCCESS,
+        CHK(signalingClientGetCurrentState(pAppSignaling->signalingClientHandle, &signalingClientState) == STATUS_SUCCESS,
             STATUS_APP_SIGNALING_NOT_READY);
         retStatus = STATUS_SUCCESS;
         if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
-            CHK(signaling_client_connect(pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_CONNECT);
+            CHK(signalingClientConnectSync(pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_CONNECT);
         }
     }
 
@@ -132,7 +147,7 @@ STATUS app_signaling_sendMsg(PAppSignaling pAppSignaling, PSignalingMessage pMes
 
     MUTEX_LOCK(pAppSignaling->signalingSendMessageLock);
     locked = TRUE;
-    CHK(signaling_client_sendMsg(pAppSignaling->signalingClientHandle, pMessage) == STATUS_SUCCESS, STATUS_APP_SIGNALING_SEND);
+    CHK(signalingClientSendMessageSync(pAppSignaling->signalingClientHandle, pMessage) == STATUS_SUCCESS, STATUS_APP_SIGNALING_SEND);
 
 CleanUp:
 
@@ -149,8 +164,8 @@ STATUS app_signaling_restart(PAppSignaling pAppSignaling)
     STATUS retStatus = STATUS_SUCCESS;
     DLOGD("Restart app signaling");
     // Check if we need to re-create the signaling client on-the-fly
-    CHK(signaling_client_free(&pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_RESTART);
-    CHK(signaling_client_create(&pAppSignaling->clientInfo, &pAppSignaling->channelInfo, &pAppSignaling->signalingClientCallbacks,
+    CHK(freeSignalingClient(&pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_RESTART);
+    CHK(createSignalingClientSync(&pAppSignaling->clientInfo, &pAppSignaling->channelInfo, &pAppSignaling->signalingClientCallbacks,
                                   pAppSignaling->pAppCredential->pCredentialProvider, &pAppSignaling->signalingClientHandle) == STATUS_SUCCESS,
         STATUS_APP_SIGNALING_RESTART);
 
@@ -164,7 +179,7 @@ STATUS app_signaling_free(PAppSignaling pAppSignaling)
     STATUS retStatus = STATUS_SUCCESS;
     DLOGD("Free app signaling");
     if (pAppSignaling->signalingClientHandle != INVALID_SIGNALING_CLIENT_HANDLE_VALUE) {
-        retStatus = signaling_client_free(&pAppSignaling->signalingClientHandle);
+        retStatus = freeSignalingClient(&pAppSignaling->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
             retStatus = STATUS_APP_SIGNALING_FREE;
         }

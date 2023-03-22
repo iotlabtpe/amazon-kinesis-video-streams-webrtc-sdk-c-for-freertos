@@ -41,13 +41,13 @@ static VOID onDataChannelMessage(UINT64 userData, PRtcDataChannel pDataChannel, 
 		printf("DataChannel String Message: %s%c\n\r", pMessage, c);
 		*(pMessage + pMessageLen - 1) = c;
 		// master echo
-		data_channel_send(session->pRtcDataChannel, isBinary, pMessage, pMessageLen);
+		dataChannelSend(session->pRtcDataChannel, isBinary, pMessage, pMessageLen);
     }
 }
 
 VOID onDataChannel(UINT64 userData, PRtcDataChannel pRtcDataChannel)
 {
     DLOGI("New DataChannel has been opened %s \n", pRtcDataChannel->name);
-    data_channel_onMessage(pRtcDataChannel, userData, onDataChannelMessage);
+    dataChannelOnMessage(pRtcDataChannel, userData, onDataChannelMessage);
 }
 #endif

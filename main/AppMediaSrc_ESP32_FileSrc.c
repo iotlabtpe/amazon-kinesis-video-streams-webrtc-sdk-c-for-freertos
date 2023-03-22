@@ -15,7 +15,7 @@
 #define LOG_CLASS "AppFileSrc"
 #include "AppMediaSrc_ESP32_FileSrc.h"
 #include "AppCommon.h"
-#include "fileio.h"
+#include "FileIo.h"
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
@@ -63,7 +63,7 @@ STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
     size = *pSize;
 
     // Get the size and read into frame
-    retStatus = fileio_read(frameFilePath, TRUE, pFrame, &size);
+    retStatus = readFile(frameFilePath, TRUE, pFrame, &size);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] readFile(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

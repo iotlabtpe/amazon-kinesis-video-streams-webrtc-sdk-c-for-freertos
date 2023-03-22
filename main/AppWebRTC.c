@@ -18,7 +18,7 @@
 STATUS app_webrtc_init(PAppConfiguration pAppConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    retStatus = pc_initWebRtc();
+    retStatus = initKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
         retStatus = STATUS_APP_WEBRTC_INIT;
     }
@@ -28,7 +28,7 @@ STATUS app_webrtc_init(PAppConfiguration pAppConfiguration)
 STATUS app_webrtc_deinit(PAppConfiguration pAppConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    retStatus = pc_deinitWebRtc();
+    retStatus = deinitKvsWebRtc();
     if (retStatus != STATUS_SUCCESS) {
         retStatus = STATUS_APP_WEBRTC_DEINIT;
     }

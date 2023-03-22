@@ -24,7 +24,7 @@ extern "C" {
 #include <kvs/webrtc_client.h>
 #include "AppConfig.h"
 #include "AppError.h"
-#include "stack_queue.h"
+#include "StackQueue.h"
 
 /******************************************************************************
  * DEFINITIONS

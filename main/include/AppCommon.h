@@ -20,15 +20,15 @@ extern "C" {
 #endif
 
 #include <kvs/webrtc_client.h>
-#include "hash_table.h"
+#include "HashTable.h"
 #include "AppConfig.h"
 #include "AppError.h"
 #include "AppCredential.h"
 #include "AppMediaSrc.h"
 #include "AppSignaling.h"
 #include "AppMessageQueue.h"
-#include "timer_queue.h"
-#include "hash_table.h"
+#include "TimerQueue.h"
+#include "HashTable.h"
 
 typedef struct __StreamingSession StreamingSession;
 typedef struct __StreamingSession* PStreamingSession;
