@@ -2,6 +2,7 @@ option(KVS_PLAT_ESP_FREERTOS   "Build for ESP FreeRTOS"   ON)
 option(KVS_PLAT_ANYKE_FREERTOS "Build for ANYKE FreeRTOS" OFF)
 option(ENABLE_STREAMING "enable the streaming" ON)
 option(ENABLE_DATA_CHANNEL "enable the data channel" ON)
+option(ENABLE_MBEDTLS_V3 "enable mbedtls version 3.2.1" ON)
 option(ENABLE_HEADER_CONFIG_CLIENT_INFO "enable config app client info with config header" ON)
 
 if (ENABLE_HEADER_CONFIG_CLIENT_INFO AND KVS_PLAT_ANYKE_FREERTOS)
@@ -161,6 +162,9 @@ endif()
 
 if (KVS_PLAT_ANYKE_FREERTOS)
 	message("############################## start mbedtls ##############################")
+	if(ENABLE_MBEDTLS_V3)
+		add_definitions(-DMBEDTLS_3_2_1)
+	endif()
 	add_subdirectory(lib/mbedtls)
 	set_property(TARGET mbedtls APPEND PROPERTY LINK_LIBRARIES
 	        ${nvs_flash_lib}

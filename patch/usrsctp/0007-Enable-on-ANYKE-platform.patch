@@ -1,7 +1,7 @@
-From 3c4ba7ca139d007252c2f47eaeb247f164c4b976 Mon Sep 17 00:00:00 2001
+From 1ec2a188419e151954e8c642b3ec7d5d0182b8f6 Mon Sep 17 00:00:00 2001
 From: Lina Chen <chenln1124@thundersoft.com>
 Date: Thu, 6 Apr 2023 13:35:51 +0800
-Subject: [PATCH 7/7] Enable on ANYKE platform.
+Subject: [PATCH 7/8] Enable on ANYKE platform.
 
 ---
  CMakeLists.txt                         | 15 +++++++++++

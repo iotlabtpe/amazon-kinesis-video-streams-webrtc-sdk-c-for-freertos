@@ -30,7 +30,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined (MBEDTLS_3_2_1)
+#include "entropy_poll.h"
+#else
 #include "mbedtls/entropy_poll.h"
+#endif
 
 #if defined(MBEDTLS_ENTROPY_C)
 

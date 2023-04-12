@@ -1,0 +1,26 @@
+From dc468ce0f68bd5b9a607c8b4d053754f48766d5f Mon Sep 17 00:00:00 2001
+From: Lina Chen <chenln1124@thundersoft.com>
+Date: Wed, 12 Apr 2023 11:16:25 +0800
+Subject: [PATCH 8/8] Enable mbedtls_v3.2.1
+
+---
+ usrsctplib/netinet/sctp_sha1.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/usrsctplib/netinet/sctp_sha1.h b/usrsctplib/netinet/sctp_sha1.h
+index 9ff4ff7..58065de 100755
+--- a/usrsctplib/netinet/sctp_sha1.h
++++ b/usrsctplib/netinet/sctp_sha1.h
+@@ -48,6 +48,9 @@ __FBSDID("$FreeBSD$");
+ #include <openssl/sha.h>
+ #elif defined(SCTP_USE_MBEDTLS_SHA1)
+ #include <mbedtls/sha1.h>
++#if defined (MBEDTLS_3_2_1)
++#include <mbedtls/compat-2.x.h>
++#endif
+ #endif
+ 
+ struct sctp_sha1_context {
+-- 
+2.17.1
+
