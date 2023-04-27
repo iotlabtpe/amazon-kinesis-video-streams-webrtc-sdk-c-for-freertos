@@ -26,7 +26,7 @@ INT32 WebRTCAppMain(PAppMediaSrc pAppMediaSrc)
     UINT64 startTime, endTime;
 
     startTime = GETTIME();
-    retStatus = initApp(TRUE, TRUE, pAppMediaSrc, &pAppConfiguration);
+    retStatus = initApp(TRUE, TRUE, TRUE, pAppMediaSrc, &pAppConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[WebRTC] initApp(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

@@ -657,22 +657,22 @@ STATUS app_common_createStreamingSession(PAppConfiguration pAppConfiguration, PC
         (transceiverOnBandwidthEstimation(pStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
 
     // Add a SendRecv Transceiver of type audio
-    //CHK_STATUS((pAppMediaSrc->app_media_source_queryAudioCap(pAppConfiguration->pMediaContext, &codec)));
-    //CHK_STATUS((addSupportedCodec(pStreamingSession->pPeerConnection, codec)));
-    //pAudioTrack->kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    //pAudioTrack->codec = codec;
+    CHK_STATUS((pAppMediaSrc->app_media_source_queryAudioCap(pAppConfiguration->pMediaContext, &codec)));
+    CHK_STATUS((addSupportedCodec(pStreamingSession->pPeerConnection, codec)));
+    pAudioTrack->kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    pAudioTrack->codec = codec;
 #ifdef ENABLE_AUDIO_SENDRECV
-    //audioRtpTransceiverInit.direction =  RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    audioRtpTransceiverInit.direction =  RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
 #else
-    //audioRtpTransceiverInit.direction =  RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    audioRtpTransceiverInit.direction =  RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
 #endif
-    //STRNCPY(pAudioTrack->streamId, APP_AUDIO_TRACK_STREAM_ID, MAX_MEDIA_STREAM_ID_LEN);
-    //STRNCPY(pAudioTrack->trackId, APP_AUDIO_TRACK_ID, MAX_MEDIA_STREAM_ID_LEN);
-    //CHK_STATUS(
-    //   (addTransceiver(pStreamingSession->pPeerConnection, pAudioTrack, &audioRtpTransceiverInit, &pStreamingSession->pAudioRtcRtpTransceiver)));
+    STRNCPY(pAudioTrack->streamId, APP_AUDIO_TRACK_STREAM_ID, MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(pAudioTrack->trackId, APP_AUDIO_TRACK_ID, MAX_MEDIA_STREAM_ID_LEN);
+    CHK_STATUS(
+       (addTransceiver(pStreamingSession->pPeerConnection, pAudioTrack, &audioRtpTransceiverInit, &pStreamingSession->pAudioRtcRtpTransceiver)));
 
-    //CHK_STATUS(
-    //   (transceiverOnBandwidthEstimation(pStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
+    CHK_STATUS(
+       (transceiverOnBandwidthEstimation(pStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pStreamingSession, app_common_onBandwidthEstimation)));
     // twcc bandwidth estimation
     // CHK_STATUS((peerConnectionOnSenderBandwidthEstimation(pStreamingSession->pPeerConnection, (UINT64) pStreamingSession,
                                                          // app_common_onSenderBandwidthEstimation)));
@@ -751,7 +751,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS initApp(BOOL trickleIce, BOOL useTurn, PAppMediaSrc pAppMediaSrc, PAppConfiguration* ppAppConfiguration)
+STATUS initApp(BOOL trickleIce, BOOL useTurn, BOOL useMediaStorage, PAppMediaSrc pAppMediaSrc, PAppConfiguration* ppAppConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PAppConfiguration pAppConfiguration = NULL;
@@ -800,6 +800,8 @@ STATUS initApp(BOOL trickleIce, BOOL useTurn, PAppMediaSrc pAppMediaSrc, PAppCon
     pAppSignaling->channelInfo.reconnect = TRUE;
     pAppSignaling->channelInfo.pCertPath = pAppConfiguration->appCredential.pCaCertPath;
     pAppSignaling->channelInfo.messageTtl = 0; // Default is 60 seconds
+    pAppSignaling->channelInfo.useMediaStorage = useMediaStorage;
+    pAppSignaling->channelInfo.pStorageStreamArn = GETENV(APP_STORAGE_STREAM_ARN);
 
     pAppSignaling->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     //pAppSignaling->clientInfo.loggingLevel = getLogLevel();

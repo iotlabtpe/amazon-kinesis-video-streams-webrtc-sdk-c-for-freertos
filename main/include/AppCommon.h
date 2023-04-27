@@ -107,7 +107,7 @@ struct __StreamingSession {
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success.
  */
-STATUS initApp(BOOL trickleIce, BOOL useTurn, PAppMediaSrc pAppMediaSrc, PAppConfiguration* ppAppConfiguration);
+STATUS initApp(BOOL trickleIce, BOOL useTurn, BOOL useMediaStorage, PAppMediaSrc pAppMediaSrc, PAppConfiguration* ppAppConfiguration);
 /**
  * @brief start runnning the app.
  *
