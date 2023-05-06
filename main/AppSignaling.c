@@ -119,6 +119,18 @@ STATUS app_signaling_connect(PAppSignaling pAppSignaling)
     // Enable the processing of the messages
     CHK(signaling_client_connect(pAppSignaling->signalingClientHandle) == STATUS_SUCCESS, STATUS_APP_SIGNALING_CONNECT);
 
+    DLOGD("Beginning streaming...check the stream over channel %s\n", pAppSignaling->channelInfo.pChannelName);
+
+    if (pAppSignaling->channelInfo.useMediaStorage == TRUE) {
+        DLOGD("invoke join storage session\n");
+        retStatus = signaling_client_joinSession(pAppSignaling->signalingClientHandle);
+        if (retStatus != STATUS_SUCCESS) {
+            DLOGD("[KVS Master] signaling_client_joinSession(): operation returned status code: 0x%08x", retStatus);
+            goto CleanUp;
+        }
+        DLOGD("[KVS Master] Signaling client connection to socket established\n");
+    }
+
 CleanUp:
     return retStatus;
 }

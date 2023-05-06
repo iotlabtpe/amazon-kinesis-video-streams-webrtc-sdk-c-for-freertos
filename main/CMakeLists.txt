@@ -1,7 +1,7 @@
 option(KVS_PLAT_ESP_FREERTOS   "Build for ESP FreeRTOS"   ON)
 option(KVS_PLAT_ANYKE_FREERTOS "Build for ANYKE FreeRTOS" OFF)
 option(ENABLE_STREAMING "enable the streaming" ON)
-option(ENABLE_DATA_CHANNEL "enable the data channel" ON)
+option(ENABLE_DATA_CHANNEL "enable the data channel" OFF)
 option(ENABLE_HEADER_CONFIG_CLIENT_INFO "enable config app client info with config header" ON)
 if (ENABLE_HEADER_CONFIG_CLIENT_INFO AND KVS_PLAT_ANYKE_FREERTOS)
         include(AppConfig.cmake)
