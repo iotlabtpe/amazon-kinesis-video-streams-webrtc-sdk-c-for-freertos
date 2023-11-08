@@ -7,23 +7,23 @@ set(LIB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/main/lib")
 set(LIBKVSWEBRTC_NAME "amazon-kinesis-video-streams-webrtc-sdk-c")
 set(LIBKVSWEBRTC_INCLUDE_DIRS "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/include"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/api_call"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/credential"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/crypto"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/ice"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/ApiCall"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Credential"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Crypto"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Ice"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Json"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/net"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Net"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/PeerConnection"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Rtcp"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Rtp"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Rtp/Codecs"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/sctp"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Sctp"
                                 "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Sdp"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/signaling"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/srtp"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/state_machine"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/stun"
-                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/utils")
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Signaling"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Srtp"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/StateMachine"
+				"${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Stun"
+                                "${LIB_SOURCE_DIR}/${LIBKVSWEBRTC_NAME}/src/source/Utils")
 
 set(OPEN_SRC_INCLUDE_DIRS "${LIBKVSWEBRTC_INCLUDE_DIRS}")
 set(APP_INCLUDE_DIRS "./include")

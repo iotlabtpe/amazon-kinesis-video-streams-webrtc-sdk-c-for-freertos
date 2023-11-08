@@ -17,8 +17,8 @@
  ******************************************************************************/
 #define LOG_CLASS "AppCredential"
 #include "AppCredential.h"
-#include "stack_queue.h"
-#include "directory.h"
+#include "StackQueue.h"
+#include "Directory.h"
 #include "iot_credential_provider.h"
 #include "static_credential_provider.h"
 
@@ -88,14 +88,14 @@ STATUS app_credential_generateCertRoutine(PAppCredential pAppCredential)
     locked = TRUE;
 
     // Quick check if there is anything that needs to be done.
-    CHK_STATUS((stack_queue_getCount(pAppCredential->generatedCertificates, &certCount)));
+    CHK_STATUS((stackQueueGetCount(pAppCredential->generatedCertificates, &certCount)));
     CHK(certCount <= MAX_RTCCONFIGURATION_CERTIFICATES, retStatus);
 
     // Generate the certificate with the keypair
-    CHK(rtc_certificate_create(&pRtcCertificate) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_CERT_CREATE);
+    CHK(createRtcCertificate(&pRtcCertificate) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_CERT_CREATE);
 
     // Add to the stack queue
-    CHK(stack_queue_enqueue(pAppCredential->generatedCertificates, (UINT64) pRtcCertificate) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_CERT_STACK);
+    CHK(stackQueueEnqueue(pAppCredential->generatedCertificates, (UINT64) pRtcCertificate) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_CERT_STACK);
 
     DLOGD("New certificate has been pre-generated and added to the queue");
 
@@ -108,7 +108,7 @@ STATUS app_credential_generateCertRoutine(PAppCredential pAppCredential)
 CleanUp:
 
     if (pRtcCertificate != NULL) {
-        rtc_certificate_free(pRtcCertificate);
+        freeRtcCertificate(pRtcCertificate);
     }
 
     if (locked) {
@@ -133,7 +133,7 @@ STATUS popGeneratedCert(PAppCredential pAppCredential, PRtcCertificate* ppRtcCer
     locked = TRUE;
     // Check if we have any pregenerated certs and use them
     // NOTE: We are running under the config lock
-    retStatus = stack_queue_dequeue(pAppCredential->generatedCertificates, &data);
+    retStatus = stackQueueDequeue(pAppCredential->generatedCertificates, &data);
     CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_NOT_FOUND, retStatus);
 
     if (retStatus == STATUS_NOT_FOUND) {
@@ -171,7 +171,7 @@ STATUS app_credential_create(PAppCredential pAppCredential)
 
     if (((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL) && ((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL)) {
         pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
-        CHK(static_credential_provider_create(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pAppCredential->pCredentialProvider) ==
+        CHK(createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pAppCredential->pCredentialProvider) ==
                 STATUS_SUCCESS,
             STATUS_APP_CREDENTIAL_ALLOCATE_STATIC);
         pAppCredential->credentialType = APP_CREDENTIAL_TYPE_STATIC;
@@ -188,7 +188,7 @@ STATUS app_credential_create(PAppCredential pAppCredential)
 
     pAppCredential->generateCertLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pAppCredential->generateCertLock), STATUS_APP_CREDENTIAL_INVALID_MUTEX);
-    CHK(stack_queue_create(&pAppCredential->generatedCertificates) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_PREGENERATED_CERT_QUEUE);
+    CHK(stackQueueCreate(&pAppCredential->generatedCertificates) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_PREGENERATED_CERT_QUEUE);
 
 CleanUp:
 
@@ -209,22 +209,22 @@ STATUS app_credential_destroy(PAppCredential pAppCredential)
     CHK(pAppCredential != NULL, STATUS_APP_CREDENTIAL_NULL_ARG);
 
     if (pAppCredential->generatedCertificates != NULL) {
-        stack_queue_iterator_get(pAppCredential->generatedCertificates, &iterator);
+        stackQueueGetIterator(pAppCredential->generatedCertificates, &iterator);
         while (IS_VALID_ITERATOR(iterator)) {
-            stack_queue_iterator_getItem(iterator, &data);
-            stack_queue_iterator_getNext(&iterator);
-            rtc_certificate_free((PRtcCertificate) data);
+            stackQueueIteratorGetItem(iterator, &data);
+            stackQueueIteratorNext(&iterator);
+            freeRtcCertificate((PRtcCertificate) data);
         }
 
-        CHK_LOG_ERR((stack_queue_clear(pAppCredential->generatedCertificates, FALSE)));
-        CHK_LOG_ERR((stack_queue_free(pAppCredential->generatedCertificates)));
+        CHK_LOG_ERR((stackQueueClear(pAppCredential->generatedCertificates, FALSE)));
+        CHK_LOG_ERR((stackQueueFree(pAppCredential->generatedCertificates)));
         pAppCredential->generatedCertificates = NULL;
     }
 
     if (pAppCredential->credentialType == APP_CREDENTIAL_TYPE_STATIC) {
-        CHK(static_credential_provider_free(&pAppCredential->pCredentialProvider) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_DESTROY_STATIC);
+        CHK(freeStaticCredentialProvider(&pAppCredential->pCredentialProvider) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_DESTROY_STATIC);
     } else if (pAppCredential->credentialType == APP_CREDENTIAL_TYPE_IOT_CERT) {
-        CHK(iot_credential_provider_free(&pAppCredential->pCredentialProvider) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_DESTROY_IOT);
+        CHK(freeIotCredentialProvider(&pAppCredential->pCredentialProvider) == STATUS_SUCCESS, STATUS_APP_CREDENTIAL_DESTROY_IOT);
     } else {
         retStatus = STATUS_APP_CREDENTIAL_DESTROY_NA;
     }
